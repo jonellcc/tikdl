@@ -1,12 +1,9 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-app.use(helmet());
 
 app.use((req, res, next) => {
     const ip = req.ip;
