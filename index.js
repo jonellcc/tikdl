@@ -1,7 +1,6 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const rateLimit = require('express-rate-limit ');
 const helmet = require('helmet');
 
 const app = express();
@@ -15,13 +14,6 @@ app.use((req, res, next) => {
     next();
 });
 
-const limiter = rateLimit({
-    windowMs: 1 * 60 * 1000,
-    max: 5,
-    message: "Too Many Requests. This DDoS Protection Response is based on your IP address. If you are Ddos this Site, I'm saying this: Ang hina ng DDoS mo hahahha."
-});
-
-app.use(limiter);
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
