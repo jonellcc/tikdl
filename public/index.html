@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes popUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .popup-animation {
+            animation: popUp 0.5s ease-out;
+        }
+        #spinner {
+            display: none;
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 5px solid #28a745;
+            animation: spin 1s linear infinite;
+            margin-top: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .truncate-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+            max-width: 100%;
+        }
+        .watermark {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-100 p-8 flex flex-col items-center">
+
+    <div class="popup-animation max-w-lg w-full bg-white shadow-lg rounded-lg p-6">
+        <h1 class="text-3xl font-bold mb-6 text-center">Video Downloader</h1>
+        <form id="downloadForm" class="flex items-center mb-6">
+            <input type="text" id="url" placeholder="Enter video URL" required class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500">
+            <button type="submit" class="ml-4 px-5 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none">Download</button>
+        </form>
+        <div id="spinner" class="mx-auto"></div>
+        <div id="result" class="mt-4"></div>
+    </div>
+
+    <div id="videoPreview" class="popup-animation mt-8 hidden relative max-w-lg w-full bg-white shadow-lg rounded-lg p-6">
+        <video id="videoPlayer" controls class="w-full rounded-lg"></video>
+        <div class="watermark">TikDL CC</div>
+    </div>
+
+    <script>
+        document.getElementById('downloadForm').addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const url = document.getElementById('url').value;
+            const responseElement = document.getElementById('result');
+            const spinner = document.getElementById('spinner');
+            const videoPreview = document.getElementById('videoPreview');
+            const videoPlayer = document.getElementById('videoPlayer');
+
+            spinner.style.display = 'block';
+            responseElement.innerHTML = '';
+            videoPreview.classList.add('hidden');
+
+            try {
+                const response = await fetch(`/api/download?url=${encodeURIComponent(url)}`);
+                const data = await response.json();
+
+                spinner.style.display = 'none';
+
+                if (response.ok) {
+                    const title = data.title.replace(/\s+/g, '_').replace(/[^\w]/g, '');
+                    const timestamp = Date.now();
+
+                    responseElement.innerHTML = `
+                        <p><strong>Author:</strong> ${data.author}</p>
+                        <p><strong>Title:</strong> <span class="truncate-text">${data.title}</span></p>
+                        <p><strong>Views:</strong> ${data.view_count}</p>
+                        <p><strong>Downloads:</strong> ${data.download_count}</p>
+                        <p><strong>Duration:</strong> ${data.duration} seconds</p>
+                        <button onclick="window.location.href='/api/download?url=${encodeURIComponent(url)}'" class="mt-4 px-5 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none">Go to API</button>
+                        <button onclick="downloadVideo('${data.video_url}', 'ccprojectstikdl-${title}-${timestamp}.mp4')" class="mt-4 inline-block px-5 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 focus:outline-none">Download Video</button>
+                    `;
+
+                    videoPlayer.src = data.video_url;
+                    videoPreview.classList.remove('hidden');
+                } else {
+                    responseElement.innerHTML = `<p>Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                spinner.style.display = 'none';
+                responseElement.innerHTML = `<p>Error: Unable to fetch video.</p>`;
+            }
+        });
+
+        async function downloadVideo(videoUrl, fileName) {
+            const response = await fetch(videoUrl);
+            const blob = await response.blob();
+
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
